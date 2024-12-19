@@ -12,9 +12,46 @@ const app = express()
 
 // JNVGyTVoM0sXGoTc
 
-app.use(cors())
+app.use(cors(
+  {
+    origin:["http://localhost:5173"],
+    credentials:true
+  }
+))
 app.use(express.json())
 app.use(cookieParser());
+
+
+
+let varifyToken=(req,res,next)=>{
+  console.log("middleware running")
+
+  let token =req.cookies?.token
+  console.log(token)
+
+
+
+
+
+  if(!token){
+    return res.status(401).send({message:"unauthorized token"})
+  }
+
+
+  jwt.verify(token, process.env.JWT_Secret,(err, decoded)=>{
+
+    if(err){
+      return res.status(401).send({message:"unauthorized token"})
+    }
+
+    req.user=decoded
+    next()
+  });
+  
+
+  
+
+}
 
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@main.yolij.mongodb.net/?retryWrites=true&w=majority&appName=Main`
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bnqcs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -243,11 +280,15 @@ async function run() {
 
 
 
-    app.get("/my-posted-job/:email",async(req,res)=>{
+    app.get("/my-posted-job/:email",varifyToken,async(req,res)=>{
 
       let email=req.params.email
 
       let query={email}
+
+      if(req.user.email !==  req.params.email){
+        return res.status(403).send({message:"forbidden token"})
+      }
 
       const cursor = jobCollection.find(query);
       let result=await cursor.toArray()
