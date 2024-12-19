@@ -30,8 +30,116 @@ async function run() {
 
     const database = client.db("jobDb");
     const jobCollection = database.collection("jobCollection");
+    const bitCollection = database.collection("bitCollection");
 
 
+  //   app.post("/bit-collection", async (req, res) => {
+
+  //     let data = req.body;
+  
+  //     // Check if a similar submission already exists in bitRequest
+  //     let query = { email: data.email, jobId: data.jobId };
+  //     const existingRequest = await bitCollection.findOne(query);
+  
+  //     if (existingRequest) {
+  //         // Return the existing request data to the client
+  //         return res.status(400).json({ 
+  //             message: 'Form already submitted for this job.',
+  //             existingRequest: existingRequest // Send the existing request data
+  //         });
+  //     }
+  
+  //     // If no existing request, insert the form data into bitCollection
+  //     const result = await bitCollection.insertOne(data);
+  
+  //     // Update bit count
+  //     let filter = { _id: new ObjectId(data.jobId) };
+  //     const updateDoc = { $inc: { TotalBides: 1 } };
+  
+  //     await jobCollection.updateOne(filter, updateDoc);
+  
+  //     // Send the result of the insertion
+  //     res.send(result);
+  // });
+  
+
+  app.get("/getCount",async(req,res)=>{
+    let count= await jobCollection.estimatedDocumentCount()
+
+   
+    res.send({count})
+  })
+
+
+  app.get("/bit/:email",async(req,res)=>{
+    let email=req.params.email
+    let buyerM=req.query.buyerM
+   let query={}
+    if(buyerM){
+      query={buyerMail:email}
+    }
+    else{
+      query={email}
+    }
+
+  //  let query={}
+  //   if(buyerM){
+  //     query.buyerMail=email
+  //   }
+  //   else{
+  //     query.email=email
+  //   }
+
+
+
+  //   }
+  // let query = buyerM ? { buyerMail: email } : { email };
+    
+
+    // let query={email}
+
+    const cursor = bitCollection.find(query);
+    let result= await cursor.toArray()
+    res.send(result)
+  })
+
+
+  // app.get("/bit-request/:email",async(req,res)=>{
+  //   let email=req.params.email
+
+  //   let query={buyerMail:email}
+
+  //   const cursor = bitCollection.find(query);
+  //   let result= await cursor.toArray()
+  //   res.send(result)
+
+  // })
+  app.post("/bit-collection", async (req, res) => {
+
+    let data = req.body;
+
+    // Check if a similar submission already exists in bitRequest
+    let query = { email: data.email, jobId: data.jobId };
+    const existingRequest = await bitCollection.findOne(query);
+
+    if (existingRequest) {
+        // If an existing request is found, send it to the client
+        return res.send(existingRequest);
+       
+    }
+
+    // If no existing request, insert the form data into bitCollection
+    const result = await bitCollection.insertOne(data);
+
+    // Update bit count
+    let filter = { _id: new ObjectId(data.jobId) };
+    const updateDoc = { $inc: { TotalBides: 1 } };
+
+    await jobCollection.updateOne(filter, updateDoc);
+
+    // Send the result of the insertion
+    res.send(result); // Send the result of the insertion
+});
 
     app.get("/add-jobs/:id",async(req,res)=>{
 
@@ -46,13 +154,21 @@ async function run() {
 
 
 
-    app.get("/add-jobs",async(req,res)=>{
-
-      const cursor = jobCollection.find();
-      let result=await cursor.toArray()
-      res.send(result)
-    })
-
+    app.get("/add-jobs", async (req, res) => {
+      console.log(req.query);
+    
+      let page = parseInt(req.query.page) || 0; // Default to page 0
+      let size = parseInt(req.query.size) || 10; // Default to size 10
+    
+      const cursor = jobCollection
+        .find() // Start with find
+        .skip(page * size) // Skip based on page
+        .limit(size); // Limit the number of documents
+    
+      const result = await cursor.toArray(); // Convert cursor to array
+      res.send(result); // Send the result
+    });
+    
     app.post("/add-jobs",async(req,res)=>{
 
       let formData=req.body
