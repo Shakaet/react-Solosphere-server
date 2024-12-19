@@ -2,6 +2,8 @@ const express = require('express')
 const cors = require('cors')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 require('dotenv').config()
+var jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 
 const port = process.env.PORT || 9000
 const app = express()
@@ -12,6 +14,7 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use(cookieParser());
 
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@main.yolij.mongodb.net/?retryWrites=true&w=majority&appName=Main`
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bnqcs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -62,6 +65,39 @@ async function run() {
   //     res.send(result);
   // });
   
+
+  
+  app.post("/jwt",async(req,res)=>{
+      
+
+    let userData=req.body
+
+    let token= jwt.sign(userData, process.env.JWT_Secret, { expiresIn: "1h" });
+
+    res
+    .cookie('token', token, {
+      httpOnly: true, 
+      // secure:false  ,    // Prevent JavaScript access to the cookie
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",         // Send cookie over HTTPS only
+      
+  })
+    .send({success:true})
+    
+  });
+
+
+  app.post("/logout",(req,res)=>{
+    res
+    .clearCookie('token',  {
+      httpOnly: true,
+      // secure:false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict", // Use true in production with HTTPS
+    })
+    .send({success:true})
+  })
+
 
   app.get("/getCount",async(req,res)=>{
     let count= await jobCollection.estimatedDocumentCount()
