@@ -114,6 +114,25 @@ async function run() {
   //   res.send(result)
 
   // })
+
+
+
+
+
+  app.put("/updatedStatusBit/:id",async(req,res)=>{
+
+    const id = req.params.id;
+  const { status } = req.body;
+
+  const filter = { _id: new ObjectId(id) };
+  const updateDoc = {
+    $set: { status },
+  };
+
+  const result = await bitCollection.updateOne(filter, updateDoc);
+
+  res.send(result);
+  })
   app.post("/bit-collection", async (req, res) => {
 
     let data = req.body;
@@ -148,6 +167,13 @@ async function run() {
       let query={_id:new ObjectId(idx)}
 
       const result = await jobCollection.findOne(query);
+      res.send(result)
+    })
+
+    app.get("/homeJob",async(req,res)=>{
+        
+      let cursor=jobCollection.find()
+      let result=await cursor.toArray()
       res.send(result)
     })
 
